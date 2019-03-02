@@ -3,12 +3,13 @@ docker-osticket
 
 # Introduction
 
-Docker image for running version 1.10.4 of [OSTicket](http://osticket.com/).
+Docker image for developing against [OSTicket](http://osticket.com/).
 
-This image has been created from the original docker-osticket image by [Petter A. Helset](mailto:petter@helset.eu).
+This image has been created from the original docker-osticket image by [Petter A. Helset](mailto:petter@helset.eu), and the modifications made by [Martin Campbell](mailto:martin@campbellsoftware.co.uk) 
 
 It has a few modifications:
 
+  * Upgraded to MariaDB with fixes/patches to make it work in Docker on Windows.. yup, I bought a windows laptop.
   * Documentation added, hurray!
   * Base OS image fixed to Alpine Linux
   * AJAX issues fixed that made original image unusable
@@ -23,9 +24,15 @@ The `setup/` directory has been renamed as `setup_hidden/` and the file system p
 location. It was not removed as the setup files are required as part of the automatic configuration during container
 start.
 
-# Quick Start
+# Quick Start method:
 
-Ensure you have a MySQL 5 container running that OSTicket can use to store its data.
+```bash
+docker-compose up
+```
+
+Go make a cuppa.. it will take a few minutes to download build everything, if like me, you cheaped out and got Win10 home edition, you'll probably need to forward the port inside virtualbox, otherwise, just open up a browser to http://localhost:8080 and enjoy.
+
+## Slower/old method:
 
 ```bash
 docker run --name osticket_mysql -d -e MYSQL_ROOT_PASSWORD=secret -e MYSQL_USER=osticket -e MYSQL_PASSWORD=secret -e MYSQL_DATABASE=osticket mysql:5
@@ -34,13 +41,15 @@ docker run --name osticket_mysql -d -e MYSQL_ROOT_PASSWORD=secret -e MYSQL_USER=
 Now run this image and link the MySQL container.
 
 ```bash
-docker run --name osticket -d --link osticket_mysql:mysql -p 8080:80 campbellsoftwaresolutions/osticket
+docker run --name osticket -d --link osticket_mysql:mysql -e OSTICKET_VERSION=1.11 -p 8080:80 clonemeagain/osticket
 ```
 
 Wait for the installation to complete then browse to your OSTicket staff control panel at `http://localhost:8080/scp/`. Login with default admin user & password:
 
 * username: **ostadmin**
 * password: **Admin1**
+
+Those can be reset in the docker-compose file as ENV, or by changing it in the scripts.. 
 
 Now configure as required. If you are intending on using this image in production, please make sure you change the
 passwords above and read the rest of this documentation!

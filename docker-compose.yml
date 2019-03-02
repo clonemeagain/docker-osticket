@@ -1,0 +1,57 @@
+version: '3.3'
+services:
+  web:
+    depends_on:
+     - database
+    build: .         
+    volumes:
+      - ./src:/data
+      - ./logs:/var/log
+    tmpfs:
+      - /run
+      - /tmp
+      - /var/tmp
+    ports:
+      - "8080:80"
+    environment:
+      OSTICKET_VERSION: "1.11"
+      MYSQL_HOST: database
+      MYSQL_DATABASE: osticket
+      MYSQL_PREFIX: ost_
+      MYSQL_PASSWORD: secret
+      MYSQL_USER: osticket
+      SMTP_HOST: mail
+      SMTP_PORT: 1025
+
+  mail:
+    image: mailhog/mailhog
+    ports: 
+      - 1025:1025 # smtp server
+      - 8025:8025 # web ui
+
+#  smtp-relay:
+#    image: turgon37/smtp-relay:latest
+#    environment:
+#      - RELAY_POSTMASTER=postmaster@example.net
+#      - RELAY_MYHOSTNAME=smtp-relay.example.net
+#      - RELAY_MYDOMAIN=example.net
+#      - RELAY_MYNETWORKS=127.0.0.0/8 10.0.0.0/24
+#      - RELAY_HOST=[10.1.0.1]:25
+#    ports:
+#      - "10.0.0.1:3000:25"
+
+  database:
+    image: mariadb:10.1
+    restart: unless-stopped
+    volumes:
+      - dbdata:/var/lib/mysql
+    command:
+      mysqld --innodb-flush-method=littlesync --innodb-use-native-aio=OFF --log_bin=ON
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: osticket
+      MYSQL_USER: osticket
+      MYSQL_PASSWORD: secret
+
+volumes:
+  dbdata:
