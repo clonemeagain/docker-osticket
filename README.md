@@ -11,57 +11,45 @@ It has a few modifications:
 
   * Upgraded to MariaDB with fixes/patches to make it work in Docker on Windows.. yup, I bought a windows laptop.
   * Documentation added, hurray!
-  * Base OS image fixed to Alpine Linux
-  * AJAX issues fixed that made original image unusable
+  * Base OS image set to Apache with latest PHP 7
   * Now designed to work with a linked [MySQL](https://registry.hub.docker.com/u/library/mysql/) docker container.
-  * Automates configuration file & database installation
-  * EMail support
+  * Designed to use a linked Mail relay/sender for container isolation
+  * Automates configuration file & database installation (Cheers shoulders of giants!)
+  * Email support is configurable in docker-compose
 
-OSTicket is being served by [nginx](http://wiki.nginx.org/Main) using [PHP-FPM](http://php-fpm.org/) with PHP7.
-PHP7's [mail](http://php.net/manual/en/function.mail.php) function is configured to use [msmtp](http://msmtp.sourceforge.net/) to send out-going messages.
+OSTicket is being served by Apache2 with PHP7.
+PHP7's [mail](http://php.net/manual/en/function.mail.php) function is configured to use mailhog to capture out-going messages, for development
 
 The `setup/` directory has been renamed as `setup_hidden/` and the file system permissions deny nginx access to this
 location. It was not removed as the setup files are required as part of the automatic configuration during container
 start.
 
-# Quick Start method:
+# Getting Started
 
 ```bash
 docker-compose up
 ```
 
-Go make a cuppa.. it will take a few minutes to download build everything, if like me, you cheaped out and got Win10 home edition, you'll probably need to forward the port inside virtualbox, otherwise, just open up a browser to http://localhost:8080 and enjoy.
+Go make a cuppa.. it will take a few minutes to download build everything, if like me, you cheaped out and got Win10 home edition, you'll probably need to forward the ports inside virtualbox, otherwise, just open up a browser to http://localhost:8080 and enjoy.
 
-## Slower/old method:
+Forward the ports for VirtualBox! (not necessary on linux, or if you use the Hyper-V version of Docker for windows)
+Open Oracle VirtualBox -> Default -> Settings -> Networking -> Port Forwarding 
+ * Add one for 8080 8080 (view osticket)
+ * Add one for 8025 8025 (view mailhog)
 
-```bash
-docker run --name osticket_mysql -d -e MYSQL_ROOT_PASSWORD=secret -e MYSQL_USER=osticket -e MYSQL_PASSWORD=secret -e MYSQL_DATABASE=osticket mysql:5
-```
+ You can do this while it's building.
 
-Now run this image and link the MySQL container.
-
-```bash
-docker run --name osticket -d --link osticket_mysql:mysql -e OSTICKET_VERSION=1.11 -p 8080:80 clonemeagain/osticket
-```
 
 Wait for the installation to complete then browse to your OSTicket staff control panel at `http://localhost:8080/scp/`. Login with default admin user & password:
 
 * username: **ostadmin**
 * password: **Admin1**
 
-Those can be reset in the docker-compose file as ENV, or by changing it in the scripts.. 
+Those can be reset in the docker-compose file as ENV variables, or by changing it in the scripts.. 
 
 Now configure as required. If you are intending on using this image in production, please make sure you change the
-passwords above and read the rest of this documentation!
+passwords above and read the rest of this documentation! Including changing the email container to a proper relay (example in docker-compose file)
 
-Note (1): If you want to change the environmental database variables on the OSTicket image to run, you can do it as follows.
-
-```bash
-docker run --name osticket -d MYSQL_ROOT_PASSWORD=new_root_password -e MYSQL_USER=new_root_user -e MYSQL_PASSWORD=new_secret -e MYSQL_DATABASE=osticket --link osticket_mysql:mysql -p 8080:80 campbellsoftwaresolutions/osticket
-```
-
-Note (2): OSTicket automatically redirects `http://localhost:8080/scp` to `http://localhost/scp/`. Either serve this on port 80 or don't omit the
-trailing slash after `scp/`!
 
 # MySQL connection
 
@@ -108,7 +96,7 @@ The user name to use when connecting to the MySQL server. Defaults to 'osticket'
 
 # Mail Configuration
 
-The image does not run a MTA. Although one could be installed quite easily, getting the setup so that external mail servers
+The compose group does run an example/dev MTA. Although, getting the setup so that external mail servers
 will accept mail from your host & domain is not trivial due to anti-spam measures. This is additionally difficult to do
 from ephemeral docker containers that run in a cloud where the host may change etc.
 
@@ -164,20 +152,17 @@ specified in the admin control panel, you need to specify both to the value you'
 
 This image currently supports three volumes. None of these need to used if you do not require them.
 
-`/data/upload/include/plugins`
+`/data/` bind-mount linked to your project-root's `/src` folder.
 
-This is the location where any OSTicket plugins, like [the core plugins](https://github.com/osTicket/core-plugins),
-can be placed. Plugins are not included in this image and hence should be maintained in a separate linked Docker
+This allows you to install OSTicket plugins, like [the core plugins](https://github.com/osTicket/core-plugins),
+they can be placed inside `/src/upload/include/pluggins`. 
+No Plugins are included in this image and hence should be maintained in a separate linked Docker
 container or the host filesystem.
 
-`/data/upload/include/i18n`
 
-This is the location where language packs can be added. There are several languages included in this image.
-If you want to add / change them, you can use this volume.
+`/var/log/` bind-mount linked to your project-root's `/logs` folder, for viewing development logs.
 
-`/var/log/nginx`
-
-nginx will store it's access & error logs in this location. If you wish to expose these to automatic log
+Apache will store it's access & error logs in this location. If you wish to expose these to automatic log
 collection tools then you should mount this volume.
 
 # Environmental Variables
